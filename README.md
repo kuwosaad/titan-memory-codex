@@ -6,32 +6,28 @@ Titan Memory gives Codex durable project memory: prior decisions, scene recovery
 
 ## Install
 
-Prerequisite: the `titan` CLI must be on your `PATH`.
-
-Until the Titan CLI package is published, install it from the Titan repo:
+Run one command:
 
 ```bash
-pip install -e .
+npx -y titan-memory-cli@latest setup codex
 ```
 
-Then install the Codex plugin:
+That command prepares Titan, creates the Codex memory folder, asks which extraction model to use, configures the required `nomic-embed-text:v1.5` embedding model, installs this plugin, patches Codex MCP config, and runs a health check.
 
-```bash
-npx codex-marketplace add kuwosaad/titan-memory-codex --plugin --global
-```
-
-Local dogfood from the Titan repo:
-
-```bash
-titan setup codex
-```
-
-Then open Codex and verify:
+Then do the one manual safety step Codex requires:
 
 ```text
-/plugins
-/mcp
+open Codex
 /hooks
+approve Titan Memory
+```
+
+Advanced manual install, only if you are debugging the plugin itself:
+
+```bash
+npm install -g titan-memory-cli
+npx codex-marketplace add kuwosaad/titan-memory-codex --plugin --global
+titan setup codex
 ```
 
 ## First run

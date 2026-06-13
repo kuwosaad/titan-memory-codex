@@ -2,7 +2,7 @@
 """Launch Titan MCP for the Codex plugin.
 
 The public plugin should not silently depend on a random broken `titan` binary.
-This launcher prefers a healthy local Titan CLI, falls back to package runners
+This launcher prefers a healthy local Titan CLI, falls back to npm package runners
 when available, and prints actionable setup errors without echoing secrets.
 """
 from __future__ import annotations
@@ -133,15 +133,19 @@ def _package_fallback_plan(
     env: dict[str, str],
     which_fn: Callable[[str], str | None],
 ) -> tuple[LaunchPlan | None, str | None]:
-    uvx = which_fn("uvx")
-    if uvx:
-        return LaunchPlan([uvx, "--from", PACKAGE_NAME, "titan", "mcp", "--agent", agent], env, source="uvx"), None
+    npx = which_fn("npx")
+    if npx:
+        return LaunchPlan([npx, "-y", PACKAGE_NAME, "mcp", "--agent", agent], env, source="npx"), None
 
-    pipx = which_fn("pipx")
-    if pipx:
-        return LaunchPlan([pipx, "run", "--spec", PACKAGE_NAME, "titan", "mcp", "--agent", agent], env, source="pipx"), None
+    npm = which_fn("npm")
+    if npm:
+        return LaunchPlan(
+            [npm, "exec", "--yes", "--package", PACKAGE_NAME, "--", "titan", "mcp", "--agent", agent],
+            env,
+            source="npm-exec",
+        ), None
 
-    return None, "Neither `uvx` nor `pipx` is available for package fallback."
+    return None, "Neither `npx` nor `npm` is available for package fallback."
 
 
 def build_launch_plan(
@@ -174,7 +178,7 @@ def _print_failure(diagnostics: Sequence[str], stderr: TextIO) -> None:
         print(f"- {redact_text(item)}", file=stderr)
     print("", file=stderr)
     print("Install or repair Titan, then restart Codex:", file=stderr)
-    print("  pip install --user titan-memory-cli", file=stderr)
+    print("  npm install -g titan-memory-cli", file=stderr)
     print("  # or, from the Titan repo for local dogfood:", file=stderr)
     print("  pip install -e .", file=stderr)
     print("", file=stderr)
@@ -198,7 +202,7 @@ def run(
     parser.add_argument(
         "--no-package-fallback",
         action="store_true",
-        help="Do not fall back to uvx/pipx package runners when a local Titan CLI is unavailable.",
+        help="Do not fall back to npm package runners when a local Titan CLI is unavailable.",
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
