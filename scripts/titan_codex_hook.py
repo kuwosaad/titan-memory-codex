@@ -23,6 +23,8 @@ SECRET_PATTERNS = [
     (re.compile(r"\bAIza[0-9A-Za-z_-]{20,}\b"), "[REDACTED]"),
 ]
 SECRET_KEY_RE = re.compile(r"(api[_-]?key|authorization|token|secret|password|credential)", re.IGNORECASE)
+TRACE_DIR_MODE = 0o700
+TRACE_FILE_MODE = 0o600
 
 
 def _now_iso() -> str:
@@ -170,11 +172,22 @@ def resolve_trace_dir(env: dict[str, str] | None = None) -> Path:
 
 
 def append_trace_events(trace_dir: Path, session_id: str, records: list[dict[str, Any]]) -> Path:
-    trace_dir.mkdir(parents=True, exist_ok=True)
+    trace_dir.mkdir(parents=True, exist_ok=True, mode=TRACE_DIR_MODE)
+    try:
+        trace_dir.chmod(TRACE_DIR_MODE)
+    except Exception:
+        pass
     path = trace_dir / f"{_safe_session_id(session_id)}.jsonl"
-    with path.open("a", encoding="utf-8") as handle:
+
+    flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY
+    fd = os.open(path, flags, TRACE_FILE_MODE)
+    with os.fdopen(fd, "a", encoding="utf-8") as handle:
         for record in records:
             handle.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
+    try:
+        path.chmod(TRACE_FILE_MODE)
+    except Exception:
+        pass
     return path
 
 
